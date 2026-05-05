@@ -59,8 +59,5 @@ def build_gif_frames(volume_4d, row_spacing, col_spacing, z_spacing, max_frames=
     return frames_axial, frames_coronal, frames_sagittal
 
 
-def save_gifs(frames_axial, frames_coronal, frames_sagittal, duration=0.2):
-    imageio.mimsave("axial.gif", frames_axial, duration=duration)
-    imageio.mimsave("coronal.gif", frames_coronal, duration=duration)
-    imageio.mimsave("sagittal.gif", frames_sagittal, duration=duration)
-
+def save_gif(frames, path, duration=0.2):
+    imageio.mimsave(path, frames, duration=duration)

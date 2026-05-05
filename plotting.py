@@ -32,4 +32,3 @@ def plot_summary_images(img_mid, img_last, img_avg):
     plt.axis("off")
 
     plt.show()
-

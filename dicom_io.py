@@ -41,4 +41,3 @@ def extract_spacing(ds):
 
 def build_volume_4d(pixel_array, T, Z, rows, cols):
     return pixel_array.reshape(T, Z, rows, cols)
-

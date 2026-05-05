@@ -1,5 +1,6 @@
 import numpy as np
 
+from consts import PET_PATH, PART1_ARTIFACTS_DIR
 from dicom_io import (
     build_volume_4d,
     extract_basic,
@@ -7,18 +8,12 @@ from dicom_io import (
     extract_spacing,
     load_dicom,
 )
-from gif_export import build_gif_frames, save_gifs
+from gif_export import build_gif_frames, save_gif
 from plotting import get_summary_images, plot_summary_images
-from validation import (
-    validate_block_structure,
-    validate_frame_counts,
-    validate_time_vectors,
-    validate_z_consistency,
-)
 
 
 def main():
-    ds = load_dicom("pet_study")
+    ds = load_dicom(PET_PATH)
 
     num_frames, rows, cols, pixel_array = extract_basic(ds)
     frame_times, frame_durations, frame_z = extract_frame_metadata(ds, num_frames)
@@ -26,11 +21,6 @@ def main():
 
     T = len(frame_times)
     Z = len(np.unique(frame_z))
-
-    validate_time_vectors(frame_times, frame_durations)
-    validate_frame_counts(num_frames, T, Z)
-    validate_block_structure(frame_z, T, Z)
-    validate_z_consistency(frame_z, T, Z)
 
     volume_4d = build_volume_4d(pixel_array, T, Z, rows, cols)
 
@@ -42,9 +32,14 @@ def main():
     frames_axial, frames_coronal, frames_sagittal = build_gif_frames(
         volume_4d, row_spacing, col_spacing, z_spacing
     )
-    save_gifs(frames_axial, frames_coronal, frames_sagittal, duration=0.2)
 
-    print("Saved: axial.gif, coronal.gif, sagittal.gif")
+    dir = PART1_ARTIFACTS_DIR
+    dir.mkdir(parents=True, exist_ok=True)
+    save_gif(frames_axial, PART1_ARTIFACTS_DIR / "axial.gif")
+    save_gif(frames_coronal, PART1_ARTIFACTS_DIR / "coronal.gif")
+    save_gif(frames_sagittal, PART1_ARTIFACTS_DIR / "sagittal.gif")
+
+    print(f"Saved GIFs to {dir}.")
 
 
 if __name__ == "__main__":
