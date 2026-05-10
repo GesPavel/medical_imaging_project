@@ -1,7 +1,13 @@
 import imageio
 import numpy as np
 from skimage.transform import resize
+from scipy.ndimage import rotate
 
+
+def normalize(volume):
+    p1, p99 = np.percentile(volume, (1, 99))
+    volume = np.clip(volume, p1, p99)
+    return (volume - p1) / (p99 - p1 + 1e-8)
 
 def norm_and_resize(img, scale_y=1.0, scale_x=1.0):
     img = img.astype(float)
@@ -58,6 +64,49 @@ def build_gif_frames(volume_4d, row_spacing, col_spacing, z_spacing, max_frames=
 
     return frames_axial, frames_coronal, frames_sagittal
 
+def make_mip_gifs(mr_np, pet_np, alpha=0.4, n_angles=60):
+    """
+    mr_np, pet_np: numpy arrays of shape (z, y, x), already co-registered
+    out_dir: directory to save gifs
+    """
+
+    # Normalize ONCE per volume (important)
+    mr_np  = normalize(mr_np)
+    pet_np = normalize(pet_np)
+
+    angles = np.linspace(0, 180, n_angles)
+
+    frames_mr = []
+    frames_pet = []
+    frames_fusion = []
+
+    for angle in angles:
+        # Rotate both volumes identically
+        mr_rot = rotate(mr_np, angle, axes=(1, 2), reshape=False, order=1)
+        pet_rot = rotate(pet_np, angle, axes=(1, 2), reshape=False, order=1)
+
+        # MIP (front-view projection)
+        mr_mip = np.max(mr_rot, axis=2)
+        pet_mip = np.max(pet_rot, axis=2)
+
+        # Flip to correct orientation
+        mr_mip = np.flipud(mr_mip)
+        pet_mip = np.flipud(pet_mip)
+
+        # Fusion AFTER MIP
+        fusion_mip = (1 - alpha) * mr_mip + alpha * pet_mip
+
+        # Convert to uint8
+        mr_frame = (mr_mip * 255).astype(np.uint8)
+        pet_frame = (pet_mip * 255).astype(np.uint8)
+        fusion_frame = (fusion_mip * 255).astype(np.uint8)
+
+        frames_mr.append(mr_frame)
+        frames_pet.append(pet_frame)
+        frames_fusion.append(fusion_frame)
+
+    # Save GIFs
+    return frames_mr, frames_pet, frames_fusion
 
 def save_gif(frames, path, duration=0.2):
     imageio.mimsave(path, frames, duration=duration)
