@@ -2,6 +2,7 @@ import imageio
 import numpy as np
 from skimage.transform import resize
 from scipy.ndimage import rotate
+import matplotlib.pyplot as plt
 
 
 def normalize(volume):
@@ -64,15 +65,18 @@ def build_gif_frames(volume_4d, row_spacing, col_spacing, z_spacing, max_frames=
 
     return frames_axial, frames_coronal, frames_sagittal
 
-def make_mip_gifs(mr_np, pet_np, alpha=0.4, n_angles=60):
+def make_mip_gifs(mr_np, pet_np, alpha=0.4, n_angles=60, mr_cmap="gray", pet_cmap="magma"):
     """
     mr_np, pet_np: numpy arrays of shape (z, y, x), already co-registered
     out_dir: directory to save gifs
     """
 
     # Normalize ONCE per volume (important)
-    mr_np  = normalize(mr_np)
+    mr_np = normalize(mr_np)
     pet_np = normalize(pet_np)
+
+    mr_map = plt.get_cmap(mr_cmap)
+    pet_map = plt.get_cmap(pet_cmap)
 
     angles = np.linspace(0, 180, n_angles)
 
@@ -93,17 +97,15 @@ def make_mip_gifs(mr_np, pet_np, alpha=0.4, n_angles=60):
         mr_mip = np.flipud(mr_mip)
         pet_mip = np.flipud(pet_mip)
 
+        mr_rgb = mr_map(mr_mip)[..., :3]
+        pet_rgb = pet_map(pet_mip)[..., :3]
+
         # Fusion AFTER MIP
-        fusion_mip = (1 - alpha) * mr_mip + alpha * pet_mip
+        fusion_rgb = (1 - alpha) * mr_rgb + alpha * pet_rgb
 
-        # Convert to uint8
-        mr_frame = (mr_mip * 255).astype(np.uint8)
-        pet_frame = (pet_mip * 255).astype(np.uint8)
-        fusion_frame = (fusion_mip * 255).astype(np.uint8)
-
-        frames_mr.append(mr_frame)
-        frames_pet.append(pet_frame)
-        frames_fusion.append(fusion_frame)
+        frames_mr.append((mr_rgb * 255).astype(np.uint8))
+        frames_pet.append((pet_rgb * 255).astype(np.uint8))
+        frames_fusion.append((fusion_rgb * 255).astype(np.uint8))
 
     # Save GIFs
     return frames_mr, frames_pet, frames_fusion

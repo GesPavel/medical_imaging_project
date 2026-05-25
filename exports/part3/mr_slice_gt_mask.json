@@ -1,0 +1,9 @@
+{
+  "slice_index": 78,
+  "image_shape": [
+    256,
+    256
+  ],
+  "mask_path": "exports\\part3\\mr_slice_gt_mask.npy",
+  "source": "MR"
+}

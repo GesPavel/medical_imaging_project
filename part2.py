@@ -18,6 +18,8 @@ def pet_volume_for_registration(volume_4d, strategy="mean"):
         return volume_4d[volume_4d.shape[0] // 2]
     if strategy == "mean":
         return np.mean(volume_4d, axis=0)
+    if strategy == "last":
+        return volume_4d[-1]
     raise ValueError("Unknown PET volume strategy")
 
 
@@ -26,17 +28,20 @@ def register_pet_to_mr(pet_img, mr_img):
         mr_img,
         pet_img,
         sitk.Euler3DTransform(),
-        sitk.CenteredTransformInitializerFilter.GEOMETRY,
+        sitk.CenteredTransformInitializerFilter.MOMENTS,
     )
-    # Good parameters?
     registration = sitk.ImageRegistrationMethod()
     registration.SetMetricAsMattesMutualInformation(50)
     registration.SetMetricSamplingStrategy(registration.RANDOM)
-    registration.SetMetricSamplingPercentage(0.2)
+    registration.SetMetricSamplingPercentage(0.5)
     registration.SetInterpolator(sitk.sitkLinear)
     registration.SetOptimizerAsRegularStepGradientDescent(
-        learningRate=2.0, minStep=1e-4, numberOfIterations=200
+        learningRate=1.0, minStep=1e-4, numberOfIterations=400
     )
+    registration.SetShrinkFactorsPerLevel([4, 2, 1])
+    registration.SetSmoothingSigmasPerLevel([2, 1, 0])
+    registration.SmoothingSigmasAreSpecifiedInPhysicalUnitsOn()
+
     registration.SetInitialTransform(initial_transform, inPlace=False)
 
     final_transform = registration.Execute(mr_img, pet_img)
@@ -52,11 +57,9 @@ def normalize(img):
     img = np.clip(img, p1, p99)
     return (img - p1) / (p99 - p1 + 1e-8)
 
-def combine_images(mr_img, pet_img):
-    # -------------------------
-    # Visualization
-    # -------------------------
-    mr_np = sitk.GetArrayFromImage(mr_img)          # (z, y, x)
+
+def combine_images(mr_img, pet_img, alpha=0.5, mr_cmap="gray", pet_cmap="magma"):
+    mr_np = sitk.GetArrayFromImage(mr_img)  # (z, y, x)
     pet_np = sitk.GetArrayFromImage(pet_img)  # (z, y, x)
 
     z = mr_np.shape[0] // 2
@@ -66,12 +69,11 @@ def combine_images(mr_img, pet_img):
     mr_norm = normalize(mr_slice)
     pet_norm = normalize(pet_slice)
 
-    alpha = 0.5 #is this good alpha?
-    overlay = (1 - alpha) * mr_norm + alpha * pet_norm
+    mr_rgb = plt.get_cmap(mr_cmap)(mr_norm)[..., :3]
+    pet_rgb = plt.get_cmap(pet_cmap)(pet_norm)[..., :3]
 
-    return overlay
-
-
+    overlay = (1 - alpha) * mr_rgb + alpha * pet_rgb
+    return (overlay * 255).astype(np.uint8)
 
 
 def main():
@@ -95,7 +97,7 @@ def main():
     print("MR dim:", mr_img.GetDimension(), "size:", mr_img.GetSize())
     print("PET dim:", pet_img.GetDimension(), "size:", pet_img.GetSize())
 
-    # It throws a type mismatch erro otherwise. I assume on eof them is int and another is float
+    # It throws a type mismatch error otherwise. I assume on of them is int and another is float
     pet_img = sitk.Cast(pet_img, sitk.sitkFloat32)
     mr_img = sitk.Cast(mr_img, sitk.sitkFloat32)
 
@@ -107,13 +109,17 @@ def main():
     overlay_path = PART2_ARTIFACTS_DIR / "pet_mr_overlay.png"
 
     plt.figure(figsize=(6, 6))
-    plt.imshow(overlay, cmap="gray")
+    plt.imshow(overlay)
     plt.title("PET (registered) over MR")
     plt.axis("off")
     plt.savefig(overlay_path, bbox_inches="tight", dpi=150)
     plt.close()
 
     print(f"Saved overlay image to {overlay_path}")
+
+    resampled_pet_path = PART2_ARTIFACTS_DIR / "resampled_pet.nrrd"
+    sitk.WriteImage(resampled_pet, str(resampled_pet_path))
+    print(f"Saved resampled PET to {resampled_pet_path}")
 
     mr_np = sitk.GetArrayFromImage(mr_img)
     pet_np = sitk.GetArrayFromImage(resampled_pet)
