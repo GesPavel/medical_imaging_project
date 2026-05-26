@@ -27,3 +27,5 @@ python3 part3_segment.py
 to obtain segmentation and its evaluation.
 
 # NOTE: for code to work, the path to data should be altered in consts.py
+
+Also note, that part3_segement.py will not work without samed2 repository in the root folder of the project. To run it properly, Samed2 should be cloned and the checkpoint and memory bank should be placed in the same folder as the project.
