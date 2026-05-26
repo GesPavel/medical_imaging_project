@@ -7,5 +7,21 @@ To run the second part of the assignment, run the following command in the termi
 ```bash
 python3 part2.py
 ```
+To run the third part:
+1. First run 
+```bash
+python3 part3_getbb.py
+```
+and circle the tumor with the bounding box.
+2. Then run
+```bash
+python3 part3_getgt.py
+```
+and circle the tumor on the MR image as if using 'lasso' tool in Photoshop, to get the ground truth mask.
+3. Finally, run
+```bash
+python3 part3_segment.py
+```
+to obtain segmentation and its evaluation.
 
 # NOTE: for code to work, the path to data should be altered in consts.py
