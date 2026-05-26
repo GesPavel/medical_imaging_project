@@ -13,11 +13,13 @@ To run the third part:
 python3 part3_getbb.py
 ```
 and circle the tumor with the bounding box.
+
 2. Then run
 ```bash
 python3 part3_getgt.py
 ```
 and circle the tumor on the MR image as if using 'lasso' tool in Photoshop, to get the ground truth mask.
+
 3. Finally, run
 ```bash
 python3 part3_segment.py
